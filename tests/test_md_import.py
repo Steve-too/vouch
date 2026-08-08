@@ -192,3 +192,29 @@ def test_md_import_never_imports_approve() -> None:
             imported.update(f"{node.module}.{a.name}" for a in node.names)
     assert "vouch.lifecycle" not in {i.rsplit(".", 1)[0] for i in imported}
     assert not any(name.endswith(".approve") for name in imported)
+
+
+def test_cli_import_md_no_approve_pending(store, monkeypatch):
+    """Cover pending-claims row display (+{approved} line + 'run vouch review').
+    These lines are not hit when auto_approve_on_receipt is on."""
+    _gate_off(store)
+    _note(store, "plan.md")
+    monkeypatch.chdir(store.root)
+
+    result = CliRunner().invoke(cli, ["import-md", "vault", "--no-approve"])
+
+    assert result.exit_code == 0, result.output
+    assert "plan.md" in result.output
+    assert "pending" in result.output
+    assert "run" in result.output and "vouch review" in result.output
+
+
+def test_load_state_non_dict(tmp_path, monkeypatch):
+    """Corrupt state file (JSON list) triggers the non-dict return {} guard."""
+    from vouch.kb import store as store_mod
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".vouch").mkdir(parents=True)
+    (tmp_path / ".vouch" / "md_import_state.json").write_text("[]", encoding="utf-8")
+    # Directly test _load_state — it returns {} for non-dict JSON
+    assert md_import._load_state(store_mod.KBStore.__new__(store_mod.KBStore)) == {}
