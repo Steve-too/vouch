@@ -217,3 +217,18 @@ def test_load_state_non_dict(store, monkeypatch):
     state_file = md_import._state_path(store)
     state_file.write_text("[]", encoding="utf-8")
     assert md_import._load_state(store) == {}
+
+
+def test_cli_import_md_second_run_skips(store, monkeypatch):
+    """Second CLI run over unchanged notes hits the skipped-row continue path."""
+    _gate_off(store)
+    _note(store, "plan.md")
+    monkeypatch.chdir(store.root)
+
+    runner = CliRunner()
+    first = runner.invoke(cli, ["import-md", "vault", "--no-approve"])
+    assert first.exit_code == 0, first.output
+
+    second = runner.invoke(cli, ["import-md", "vault", "--no-approve"])
+    assert second.exit_code == 0, second.output
+    assert "skipped 1" in second.output
