@@ -209,12 +209,13 @@ def test_cli_import_md_no_approve_pending(store, monkeypatch):
     assert "run" in result.output and "vouch review" in result.output
 
 
-def test_load_state_non_dict(tmp_path, monkeypatch):
-    """Corrupt state file (JSON list) triggers the non-dict return {} guard."""
-    from vouch.kb import store as store_mod
 
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / ".vouch").mkdir(parents=True)
-    (tmp_path / ".vouch" / "md_import_state.json").write_text("[]", encoding="utf-8")
-    # Directly test _load_state — it returns {} for non-dict JSON
-    assert md_import._load_state(store_mod.KBStore.__new__(store_mod.KBStore)) == {}
+
+def test_load_state_non_dict(store, monkeypatch):
+    """Corrupt state file (JSON list) triggers the non-dict return {} guard."""
+    monkeypatch.chdir(store.root)
+    state_file = md_import._state_path(store.root if hasattr(store, 'kb_dir') else store)
+    state_file = store.root / ".vouch" / md_import.STATE_FILENAME
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file.write_text("[]", encoding="utf-8")
+    assert md_import._load_state(store) == {}
