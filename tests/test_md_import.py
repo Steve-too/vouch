@@ -214,8 +214,6 @@ def test_cli_import_md_no_approve_pending(store, monkeypatch):
 def test_load_state_non_dict(store, monkeypatch):
     """Corrupt state file (JSON list) triggers the non-dict return {} guard."""
     monkeypatch.chdir(store.root)
-    state_file = md_import._state_path(store.root if hasattr(store, 'kb_dir') else store)
-    state_file = store.root / ".vouch" / md_import.STATE_FILENAME
-    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file = md_import._state_path(store)
     state_file.write_text("[]", encoding="utf-8")
     assert md_import._load_state(store) == {}
